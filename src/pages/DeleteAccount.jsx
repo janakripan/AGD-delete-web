@@ -27,33 +27,51 @@ const DeleteAccount = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: () => deleteAccount(userId),
 
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.success("Your account has been deleted successfully");
+      console.log(res);
       setCountdown(5);
     },
 
-    onError: () => {
+    onError: (err) => {
       toast.error("Account deletion failed. Please try after some time.");
+      console.log(err);
     },
   });
 
   useEffect(() => {
-    if (countdown === null) return;
+  if (countdown === null) return;
 
-    if (countdown === 0) {
-      window.close();
-      return;
-    }
+  const toastId = "redirect-toast";
 
-    const timer = setTimeout(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
+  if (!toast.isActive(toastId)) {
+    toast.info(`Redirecting in ${countdown} seconds...`, {
+      toastId,
+      autoClose: false,
+    });
+  } else {
+    toast.update(toastId, {
+      render: `Redirecting in ${countdown} seconds...`,
+    });
+  }
 
-    return () => clearTimeout(timer);
-  }, [countdown]);
+  if (countdown === 0) {
+    toast.dismiss(toastId);
+    window.close();
+    // closeOrRedirect();
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    setCountdown((prev) => prev - 1);
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [countdown]);
 
   const handleSubmit = () => {
     console.log("Delete confirmed for user:", userId);
+
     mutate();
   };
 
@@ -150,7 +168,7 @@ const DeleteAccount = () => {
                     {/* delete button */}
                     <button
                       type="submit"
-                      disabled={!values.confirmDelete}
+                      disabled={!values.confirmDelete || isPending}
                       className={`w-1/2 py-3 rounded-lg font-semibold text-white transition-all
               ${
                 values.confirmDelete
@@ -165,7 +183,7 @@ const DeleteAccount = () => {
                     {/* keep account button */}
                     <button
                       type="button"
-                      disabled={!values.confirmDelete}
+                      disabled={!values.confirmDelete || isPending}
                       onClick={() => window.close()}
                       className={`w-1/2 py-3 rounded-lg font-semibold transition-all
               ${
