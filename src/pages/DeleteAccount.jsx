@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Formik, Form, Field } from "formik";
+import { toast } from "react-toastify";
+import { deleteAccount } from "../API/deleteUserServices";
+import { useMutation } from "@tanstack/react-query";
 
 const whatHappens = [
   "History : Your past schemes, transactions and purchase informations will be permenantly deleted",
@@ -18,11 +21,45 @@ const DeleteAccount = () => {
   const [params] = useSearchParams();
 
   const userId = params.get("uid");
-  const token = params.get("token");
 
-  //    if (!userId || !token) {
-  //     return <p>Invalid delete link.</p>;
-  //   }
+  const [countdown, setCountdown] = useState(null);
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: () => deleteAccount(userId),
+
+    onSuccess: () => {
+      toast.success("Your account has been deleted successfully");
+      setCountdown(5);
+    },
+
+    onError: () => {
+      toast.error("Account deletion failed. Please try after some time.");
+    },
+  });
+
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown === 0) {
+      window.close();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const handleSubmit = () => {
+    console.log("Delete confirmed for user:", userId);
+    mutate();
+  };
+
+  //  if (!userId || !token) {
+  //   return <p>Invalid delete link.</p>;
+  // }
 
   return (
     <div className="w-full h-screen flex flex-col bg-white overflow-y-auto">
@@ -91,10 +128,7 @@ const DeleteAccount = () => {
           <div className="w-full h-fit mt-8">
             <Formik
               initialValues={{ confirmDelete: false }}
-              onSubmit={() => {
-                // CALL DELETE API HERE
-                console.log("Delete confirmed for user:", userId);
-              }}
+              onSubmit={handleSubmit}
             >
               {({ values }) => (
                 <Form className="w-full flex flex-col gap-6">
@@ -120,7 +154,7 @@ const DeleteAccount = () => {
                       className={`w-1/2 py-3 rounded-lg font-semibold text-white transition-all
               ${
                 values.confirmDelete
-                  ? "bg-red-600 hover:bg-red-700"
+                  ? "bg-red-600 hover:bg-red-700 active:bg-red-500"
                   : "bg-red-300 cursor-not-allowed"
               }
             `}
@@ -148,8 +182,6 @@ const DeleteAccount = () => {
               )}
             </Formik>
           </div>
-
-          
         </div>
       </div>
     </div>
